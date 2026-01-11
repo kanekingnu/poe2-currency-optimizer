@@ -14,8 +14,9 @@ export async function GET(request: Request) {
       const currencyTwoPrice = parseFloat(item.CurrencyTwoData?.RelativePrice || '1');
 
       // CurrencyOne → CurrencyTwo の交換レート
-      // = CurrencyTwo の価値 / CurrencyOne の価値
-      const ratio = currencyTwoPrice / currencyOnePrice;
+      // = CurrencyOne の価値 / CurrencyTwo の価値
+      // 例: Divine(380) → Exalted(1) = 380/1 = 380 (1 Divine で 380 Exalted)
+      const ratio = currencyOnePrice / currencyTwoPrice;
 
       return {
         haveId: item.CurrencyOne?.id || 0,

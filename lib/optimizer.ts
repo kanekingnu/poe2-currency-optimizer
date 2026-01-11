@@ -39,23 +39,12 @@ export function buildCurrencyGraph(pairs: CurrencyExchangePair[]): Graph {
       // log(maxRatio / ratio) = log(maxRatio) - log(ratio)
       const weight = Math.log(maxRatio / ratio);
 
-      // 順方向のエッジを追加
+      // エッジを追加（APIは既に双方向データを提供している）
       if (!graph.hasEdge(haveId.toString(), wantId.toString())) {
         graph.addDirectedEdge(haveId.toString(), wantId.toString(), {
           ratio,
           stock,
           weight,
-        });
-      }
-
-      // 逆方向のエッジも追加（逆レートで取引可能）
-      const reverseRatio = 1 / ratio;
-      const reverseWeight = Math.log(maxRatio / reverseRatio);
-      if (!graph.hasEdge(wantId.toString(), haveId.toString())) {
-        graph.addDirectedEdge(wantId.toString(), haveId.toString(), {
-          ratio: reverseRatio,
-          stock,
-          weight: reverseWeight,
         });
       }
     }
