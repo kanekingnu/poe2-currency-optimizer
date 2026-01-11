@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useSWR from 'swr';
 import CurrencySelector from '@/components/CurrencySelector';
 import TradePathDisplay from '@/components/TradePathDisplay';
@@ -23,10 +23,12 @@ export default function Home() {
   // リーグ一覧を取得
   const { data: leagues } = useSWR<League[]>('/api/leagues', fetcher);
 
-  // デフォルトリーグを設定
-  if (leagues && leagues.length > 0 && !selectedLeague) {
-    setSelectedLeague(leagues[0].id);
-  }
+  // デフォルトリーグを設定（最新のリーグを自動選択）
+  useEffect(() => {
+    if (leagues && leagues.length > 0 && !selectedLeague) {
+      setSelectedLeague(leagues[0].id);
+    }
+  }, [leagues, selectedLeague]);
 
   // 通貨一覧を取得
   const { data: currencies, isLoading: currenciesLoading } = useSWR<CurrencyItem[]>(
