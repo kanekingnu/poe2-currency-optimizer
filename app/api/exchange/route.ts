@@ -16,13 +16,14 @@ export async function GET(request: Request) {
       const currencyOnePrice = parseFloat(item.CurrencyOneData?.RelativePrice || '1');
       const currencyTwoPrice = parseFloat(item.CurrencyTwoData?.RelativePrice || '1');
 
-      // 通貨情報を収集
+      // 通貨情報を収集（相対価格も含める）
       if (item.CurrencyOne && !currencyMap.has(item.CurrencyOne.id)) {
         currencyMap.set(item.CurrencyOne.id, {
           id: item.CurrencyOne.id,
           name: item.CurrencyOne.text || item.CurrencyOne.name || `Currency ${item.CurrencyOne.id}`,
           icon: item.CurrencyOne.iconUrl || item.CurrencyOne.icon || "",
           category: item.CurrencyOne.categoryApiId || "currency",
+          relativePrice: currencyOnePrice, // Exaltedを1とした相対価格
         });
       }
       if (item.CurrencyTwo && !currencyMap.has(item.CurrencyTwo.id)) {
@@ -31,6 +32,7 @@ export async function GET(request: Request) {
           name: item.CurrencyTwo.text || item.CurrencyTwo.name || `Currency ${item.CurrencyTwo.id}`,
           icon: item.CurrencyTwo.iconUrl || item.CurrencyTwo.icon || "",
           category: item.CurrencyTwo.categoryApiId || "currency",
+          relativePrice: currencyTwoPrice, // Exaltedを1とした相対価格
         });
       }
 

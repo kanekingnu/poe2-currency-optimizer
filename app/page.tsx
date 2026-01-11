@@ -130,7 +130,6 @@ export default function Home() {
               </div>
             ) : (
               <ExchangeRateTable
-                pairs={exchangeData?.pairs || []}
                 currencyMap={exchangeCurrencyMap}
                 limit={20}
               />
