@@ -25,6 +25,9 @@ export async function GET(request: Request) {
       category: item.categoryApiId || item.category,
     }));
 
+    // IDでソートして順番を固定
+    currencies.sort((a, b) => a.id - b.id);
+
     return NextResponse.json(currencies);
   } catch (error) {
     console.error("Error fetching currencies:", error);

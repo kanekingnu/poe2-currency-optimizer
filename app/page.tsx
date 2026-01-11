@@ -47,6 +47,9 @@ export default function Home() {
     fetcher
   );
 
+  // エラーレスポンスをnullに変換
+  const validOptimalPath = optimalPath && 'error' in optimalPath ? null : optimalPath;
+
   const currencyMap = useMemo(() => {
     const map = new Map<number, CurrencyItem>();
     currencies?.forEach((c) => map.set(c.id, c));
@@ -99,7 +102,7 @@ export default function Home() {
             </div>
 
             <TradePathDisplay
-              path={optimalPath || null}
+              path={validOptimalPath || null}
               isLoading={pathLoading}
             />
           </section>

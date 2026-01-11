@@ -19,11 +19,11 @@ export default function TradePathDisplay({ path, isLoading }: TradePathDisplayPr
     );
   }
 
-  if (!path) {
+  if (!path || !path.totalRatio || !path.steps || path.steps.length === 0) {
     return (
       <div className="bg-gray-800 rounded-lg p-6">
         <p className="text-gray-400 text-center">
-          通貨を選択して最適な取引パスを計算します
+          {path ? '取引パスが見つかりませんでした' : '通貨を選択して最適な取引パスを計算します'}
         </p>
       </div>
     );
