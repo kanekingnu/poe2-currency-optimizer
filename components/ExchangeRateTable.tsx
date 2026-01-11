@@ -5,20 +5,15 @@ import { useMemo } from 'react';
 
 interface ExchangeRateTableProps {
   pairs: CurrencyExchangePair[];
-  currencies: CurrencyItem[];
+  currencyMap: Map<number, CurrencyItem>;
   limit?: number;
 }
 
 export default function ExchangeRateTable({
   pairs,
-  currencies,
+  currencyMap,
   limit = 20,
 }: ExchangeRateTableProps) {
-  const currencyMap = useMemo(() => {
-    const map = new Map<number, CurrencyItem>();
-    currencies.forEach((c) => map.set(c.id, c));
-    return map;
-  }, [currencies]);
 
   const displayPairs = useMemo(() => {
     return pairs

@@ -37,9 +37,10 @@ export default function Home() {
   );
 
   // 為替レートを取得
-  const { data: exchangePairs, isLoading: exchangeLoading } = useSWR<
-    CurrencyExchangePair[]
-  >(selectedLeague ? `/api/exchange?league=${selectedLeague}` : null, fetcher);
+  const { data: exchangeData, isLoading: exchangeLoading } = useSWR<{
+    pairs: CurrencyExchangePair[];
+    currencies: CurrencyItem[];
+  }>(selectedLeague ? `/api/exchange?league=${selectedLeague}` : null, fetcher);
 
   // 最適パスを取得
   const { data: optimalPath, isLoading: pathLoading } = useSWR<OptimalTradePath>(
@@ -57,6 +58,12 @@ export default function Home() {
     currencies?.forEach((c) => map.set(c.id, c));
     return map;
   }, [currencies]);
+
+  const exchangeCurrencyMap = useMemo(() => {
+    const map = new Map<number, CurrencyItem>();
+    exchangeData?.currencies?.forEach((c) => map.set(c.id, c));
+    return map;
+  }, [exchangeData]);
 
   return (
     <main className="min-h-screen p-8 bg-gray-900 text-white">
@@ -123,8 +130,8 @@ export default function Home() {
               </div>
             ) : (
               <ExchangeRateTable
-                pairs={exchangePairs || []}
-                currencies={currencies || []}
+                pairs={exchangeData?.pairs || []}
+                currencyMap={exchangeCurrencyMap}
                 limit={20}
               />
             )}
