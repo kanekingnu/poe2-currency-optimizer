@@ -17,27 +17,68 @@ export async function GET(request: Request) {
       );
     }
 
-    // 通貨交換データを取得
+    // 通貨交換データを取得（全カテゴリー）
     const data = await poe2API.getCurrencyExchangePairs(league);
 
-    // APIレスポンスをマッピング
-    const exchangeData = Array.isArray(data) ? data.map((item: any) => {
-      const currencyOnePrice = parseFloat(item.CurrencyOneData?.RelativePrice || '1');
-      const currencyTwoPrice = parseFloat(item.CurrencyTwoData?.RelativePrice || '1');
 
-      // CurrencyOne → CurrencyTwo の交換レート
-      // = CurrencyOne の価値 / CurrencyTwo の価値
-      // 例: Divine(380) → Exalted(1) = 380/1 = 380 (1 Divine で 380 Exalted)
-      const ratio = currencyOnePrice / currencyTwoPrice;
+    // まず、Exalted(ID=13)が含まれるペアからグローバルな相対価格マップを構築
+    const globalRelativePriceMap = new Map<number, number>();
+    globalRelativePriceMap.set(13, 1.0); // Exalted Orbを基準(=1)とする
 
-      return {
-        haveId: item.CurrencyOne?.id || 0,
-        wantId: item.CurrencyTwo?.id || 0,
-        ratio,
-        stock: parseFloat(item.Volume || '0'),
-        timestamp: new Date().toISOString(),
-      };
-    }) : [];
+    data.forEach((item: any) => {
+      const currencyOne = item.CurrencyOne;
+      const currencyTwo = item.CurrencyTwo;
+
+      // Exaltedが含まれるペアの場合のみ、RelativePriceを信頼する
+      if (currencyOne?.id === 13) {
+        const relativePrice = parseFloat(item.CurrencyTwoData?.RelativePrice || '1');
+        if (!globalRelativePriceMap.has(currencyTwo?.id)) {
+          globalRelativePriceMap.set(currencyTwo?.id, relativePrice);
+        }
+      } else if (currencyTwo?.id === 13) {
+        const relativePrice = parseFloat(item.CurrencyOneData?.RelativePrice || '1');
+        if (!globalRelativePriceMap.has(currencyOne?.id)) {
+          globalRelativePriceMap.set(currencyOne?.id, relativePrice);
+        }
+      }
+    });
+
+
+    // APIレスポンスをマッピング - 両方向のエッジを作成
+    const exchangeData: any[] = [];
+
+    if (Array.isArray(data)) {
+      data.forEach((item: any) => {
+        const currencyOneId = item.CurrencyOne?.id || 0;
+        const currencyTwoId = item.CurrencyTwo?.id || 0;
+
+        // グローバルな相対価格マップから価格を取得
+        const currencyOneRelativePrice = globalRelativePriceMap.get(currencyOneId) || 1;
+        const currencyTwoRelativePrice = globalRelativePriceMap.get(currencyTwoId) || 1;
+
+        const stock = parseFloat(item.Volume || '0');
+
+        // CurrencyOne → CurrencyTwo の交換レート
+        const forwardRatio = currencyOneRelativePrice / currencyTwoRelativePrice;
+        exchangeData.push({
+          haveId: currencyOneId,
+          wantId: currencyTwoId,
+          ratio: forwardRatio,
+          stock,
+          timestamp: new Date().toISOString(),
+        });
+
+        // CurrencyTwo → CurrencyOne の交換レート（逆方向）
+        const reverseRatio = currencyTwoRelativePrice / currencyOneRelativePrice;
+        exchangeData.push({
+          haveId: currencyTwoId,
+          wantId: currencyOneId,
+          ratio: reverseRatio,
+          stock,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    }
 
     // 通貨情報のマップを構築
     const currencyMap = new Map<number, CurrencyItem>();
@@ -65,8 +106,10 @@ export async function GET(request: Request) {
       }
     });
 
+
     // グラフを構築
     const graph = buildCurrencyGraph(exchangeData);
+
 
     // 最適パスを計算
     const optimalPath = findOptimalPath(

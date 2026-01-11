@@ -57,14 +57,23 @@ export default function ExchangeRateTable({
             </tr>
           </thead>
           <tbody>
-            {displayCurrencies.map((currency: any, index: number) => {
+            {displayCurrencies.map((currency: any) => {
               return (
                 <tr
                   key={currency.id}
                   className="border-b border-gray-700 hover:bg-gray-700 transition-colors"
                 >
                   <td className="py-3 px-3 text-white">
-                    {currency.name}
+                    <div className="flex items-center gap-2">
+                      {currency.icon && (
+                        <img
+                          src={currency.icon}
+                          alt={currency.name}
+                          className="w-8 h-8 object-contain"
+                        />
+                      )}
+                      <span>{currency.name}</span>
+                    </div>
                   </td>
                   <td className="py-3 px-3 text-right font-mono text-blue-400">
                     {currency.relativePrice.toFixed(2)}x

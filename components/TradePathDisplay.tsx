@@ -55,9 +55,27 @@ export default function TradePathDisplay({ path, isLoading }: TradePathDisplayPr
                 {index + 1}.
               </span>
               <div className="flex items-center gap-3">
-                <span className="text-white font-medium">{step.from.name}</span>
+                <div className="flex items-center gap-2">
+                  {step.from.icon && (
+                    <img
+                      src={step.from.icon}
+                      alt={step.from.name}
+                      className="w-6 h-6 object-contain"
+                    />
+                  )}
+                  <span className="text-white font-medium">{step.from.name}</span>
+                </div>
                 <span className="text-gray-400">→</span>
-                <span className="text-white font-medium">{step.to.name}</span>
+                <div className="flex items-center gap-2">
+                  {step.to.icon && (
+                    <img
+                      src={step.to.icon}
+                      alt={step.to.name}
+                      className="w-6 h-6 object-contain"
+                    />
+                  )}
+                  <span className="text-white font-medium">{step.to.name}</span>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -75,17 +93,33 @@ export default function TradePathDisplay({ path, isLoading }: TradePathDisplayPr
       </div>
 
       <div className="mt-4 p-4 bg-gray-900 rounded-lg">
-        <div className="text-sm text-gray-400">
-          <p>
+        <div className="flex items-center gap-2 text-sm text-gray-400">
+          <div className="flex items-center gap-1">
+            {path.path[0]?.icon && (
+              <img
+                src={path.path[0].icon}
+                alt={path.path[0].name}
+                className="w-5 h-5 object-contain"
+              />
+            )}
             <span className="font-semibold text-white">
               1 {path.path[0]?.name}
             </span>
-            {' '}を使って{' '}
+          </div>
+          <span>を使って</span>
+          <div className="flex items-center gap-1">
+            {path.path[path.path.length - 1]?.icon && (
+              <img
+                src={path.path[path.path.length - 1].icon}
+                alt={path.path[path.path.length - 1].name}
+                className="w-5 h-5 object-contain"
+              />
+            )}
             <span className="font-semibold text-green-400">
               {path.totalRatio.toFixed(4)} {path.path[path.path.length - 1]?.name}
             </span>
-            {' '}を獲得できます
-          </p>
+          </div>
+          <span>を獲得できます</span>
         </div>
       </div>
     </div>

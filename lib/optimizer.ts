@@ -13,13 +13,18 @@ import type {
  * @returns グラフオブジェクト
  */
 export function buildCurrencyGraph(pairs: CurrencyExchangePair[]): Graph {
+  // 有向グラフを使用
   const graph = new Graph({ multi: false, type: "directed" });
 
-  // 最大比率を見つける（重み正規化用）
-  const maxRatio = Math.max(...pairs.filter(p => p.stock > 0 && p.ratio > 0).map(p => p.ratio), 1);
+  // 有効なペアをフィルタリング
+  const validPairs = pairs.filter(p => p.stock > 0 && p.ratio > 0 && isFinite(p.ratio));
+
+  // 最小ratioを見つけてオフセットを計算
+  const minRatio = Math.min(...validPairs.map(p => p.ratio));
+  const maxRatio = Math.max(...validPairs.map(p => p.ratio));
 
   // ノード（通貨）とエッジ（交換レート）を追加
-  pairs.forEach((pair) => {
+  validPairs.forEach((pair) => {
     const { haveId, wantId, ratio, stock } = pair;
 
     // ノードを追加（既に存在する場合はスキップ）
@@ -30,23 +35,23 @@ export function buildCurrencyGraph(pairs: CurrencyExchangePair[]): Graph {
       graph.addNode(wantId.toString());
     }
 
-    // エッジを追加
-    // 重みは -log(ratio) を使いたいが、負の重みは使えないので
-    // log(maxRatio / ratio) を使う。これで常に正の重みになり、
-    // 最短経路が最大利益のパスになる
-    // stock が0の場合はスキップ
-    if (stock > 0 && ratio > 0) {
-      // log(maxRatio / ratio) = log(maxRatio) - log(ratio)
-      const weight = Math.log(maxRatio / ratio);
+    // エッジの重みを計算
+    // 最適パスは「最大の交換レート」を求めるため、-log(ratio)を最小化したい
+    // しかし負の重みは使えないので、-log(ratio) + log(maxRatio) = log(maxRatio/ratio)
+    // これにより、ratioが大きいほど重みが小さくなる
+    // ダイクストラで重みの合計を最小化 = log(maxRatio/ratio1) + log(maxRatio/ratio2) + ...
+    // = log(maxRatio^n / (ratio1*ratio2*...)) を最小化
+    // = ratio1*ratio2*... を最大化
+    const weight = -Math.log(ratio) + Math.log(maxRatio);
 
-      // エッジを追加（APIは既に双方向データを提供している）
-      if (!graph.hasEdge(haveId.toString(), wantId.toString())) {
-        graph.addDirectedEdge(haveId.toString(), wantId.toString(), {
-          ratio,
-          stock,
-          weight,
-        });
-      }
+    // エッジを追加（haveId → wantId）
+    // 逆方向のエッジは既にoptimize/route.tsで作成されているため、ここでは作成しない
+    if (!graph.hasEdge(haveId.toString(), wantId.toString())) {
+      graph.addDirectedEdge(haveId.toString(), wantId.toString(), {
+        ratio,
+        stock,
+        weight,
+      });
     }
   });
 
