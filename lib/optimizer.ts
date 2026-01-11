@@ -15,6 +15,9 @@ import type {
 export function buildCurrencyGraph(pairs: CurrencyExchangePair[]): Graph {
   const graph = new Graph({ multi: false, type: "directed" });
 
+  // 最大比率を見つける（重み正規化用）
+  const maxRatio = Math.max(...pairs.filter(p => p.stock > 0 && p.ratio > 0).map(p => p.ratio), 1);
+
   // ノード（通貨）とエッジ（交換レート）を追加
   pairs.forEach((pair) => {
     const { haveId, wantId, ratio, stock } = pair;
@@ -28,10 +31,13 @@ export function buildCurrencyGraph(pairs: CurrencyExchangePair[]): Graph {
     }
 
     // エッジを追加
-    // 重みは 1/ratio で、最短経路が最小コスト（最大利益）になる
+    // 重みは -log(ratio) を使いたいが、負の重みは使えないので
+    // log(maxRatio / ratio) を使う。これで常に正の重みになり、
+    // 最短経路が最大利益のパスになる
     // stock が0の場合はスキップ
     if (stock > 0 && ratio > 0) {
-      const weight = 1 / ratio;
+      // log(maxRatio / ratio) = log(maxRatio) - log(ratio)
+      const weight = Math.log(maxRatio / ratio);
 
       // 順方向のエッジを追加
       if (!graph.hasEdge(haveId.toString(), wantId.toString())) {
@@ -44,7 +50,7 @@ export function buildCurrencyGraph(pairs: CurrencyExchangePair[]): Graph {
 
       // 逆方向のエッジも追加（逆レートで取引可能）
       const reverseRatio = 1 / ratio;
-      const reverseWeight = 1 / reverseRatio;
+      const reverseWeight = Math.log(maxRatio / reverseRatio);
       if (!graph.hasEdge(wantId.toString(), haveId.toString())) {
         graph.addDirectedEdge(wantId.toString(), haveId.toString(), {
           ratio: reverseRatio,
