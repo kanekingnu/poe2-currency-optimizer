@@ -27,15 +27,31 @@ export function buildCurrencyGraph(pairs: CurrencyExchangePair[]): Graph {
       graph.addNode(wantId.toString());
     }
 
-    // エッジを追加（重みは-log(ratio)で、最短経路が最大利益になる）
+    // エッジを追加
+    // 重みは 1/ratio で、最短経路が最小コスト（最大利益）になる
     // stock が0の場合はスキップ
     if (stock > 0 && ratio > 0) {
-      const weight = -Math.log(ratio);
-      graph.addDirectedEdge(haveId.toString(), wantId.toString(), {
-        ratio,
-        stock,
-        weight,
-      });
+      const weight = 1 / ratio;
+
+      // 順方向のエッジを追加
+      if (!graph.hasEdge(haveId.toString(), wantId.toString())) {
+        graph.addDirectedEdge(haveId.toString(), wantId.toString(), {
+          ratio,
+          stock,
+          weight,
+        });
+      }
+
+      // 逆方向のエッジも追加（逆レートで取引可能）
+      const reverseRatio = 1 / ratio;
+      const reverseWeight = 1 / reverseRatio;
+      if (!graph.hasEdge(wantId.toString(), haveId.toString())) {
+        graph.addDirectedEdge(wantId.toString(), haveId.toString(), {
+          ratio: reverseRatio,
+          stock,
+          weight: reverseWeight,
+        });
+      }
     }
   });
 
