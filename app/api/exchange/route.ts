@@ -6,7 +6,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const league = searchParams.get("league") || "Standard";
 
-    const exchangeData = await poe2API.getCurrencyExchangeSnapshot(league);
+    const data = await poe2API.getCurrencyExchangePairs(league);
+
+    // APIレスポンスを型定義に合わせてマッピング
+    const exchangeData = Array.isArray(data) ? data.map((item: any) => ({
+      haveId: item.CurrencyOne?.id || 0,
+      wantId: item.CurrencyTwo?.id || 0,
+      ratio: parseFloat(item.CurrencyOneData?.RelativePrice || item.CurrencyTwoData?.RelativePrice || '0'),
+      stock: parseFloat(item.Volume || '0'),
+      timestamp: new Date().toISOString(),
+    })) : [];
 
     return NextResponse.json(exchangeData);
   } catch (error) {

@@ -8,11 +8,22 @@ export async function GET(request: Request) {
     const league = searchParams.get("league") || "Standard";
     const referenceCurrency = searchParams.get("referenceCurrency") || "exalted";
 
-    const currencies = await poe2API.getCurrencyItems(
+    const data = await poe2API.getCurrencyItems(
       category,
       league,
       referenceCurrency
     );
+
+    // APIレスポンスがページネーション形式の場合、itemsを抽出
+    const items = Array.isArray(data) ? data : data.items || [];
+
+    // APIレスポンスを型定義に合わせてマッピング
+    const currencies = items.map((item: any) => ({
+      id: item.id,
+      name: item.text || item.name,
+      icon: item.iconUrl || item.icon,
+      category: item.categoryApiId || item.category,
+    }));
 
     return NextResponse.json(currencies);
   } catch (error) {

@@ -18,28 +18,39 @@ export async function GET(request: Request) {
     }
 
     // 通貨交換データを取得
-    const exchangeData = await poe2API.getCurrencyExchangeSnapshot(league);
+    const data = await poe2API.getCurrencyExchangePairs(league);
+
+    // APIレスポンスをマッピング
+    const exchangeData = Array.isArray(data) ? data.map((item: any) => ({
+      haveId: item.CurrencyOne?.id || 0,
+      wantId: item.CurrencyTwo?.id || 0,
+      ratio: parseFloat(item.CurrencyOneData?.RelativePrice || item.CurrencyTwoData?.RelativePrice || '0'),
+      stock: parseFloat(item.Volume || '0'),
+      timestamp: new Date().toISOString(),
+    })) : [];
 
     // 通貨情報のマップを構築
     const currencyMap = new Map<number, CurrencyItem>();
 
     // 交換データから通貨情報を抽出してマップを構築
-    // 注: 実際のAPIレスポンスに応じて調整が必要
-    exchangeData.forEach((pair: any) => {
-      if (!currencyMap.has(pair.haveId)) {
-        currencyMap.set(pair.haveId, {
-          id: pair.haveId,
-          name: pair.haveName || `Currency ${pair.haveId}`,
-          icon: "",
-          category: "currency",
+    data.forEach((item: any) => {
+      const currencyOne = item.CurrencyOne;
+      const currencyTwo = item.CurrencyTwo;
+
+      if (currencyOne && !currencyMap.has(currencyOne.id)) {
+        currencyMap.set(currencyOne.id, {
+          id: currencyOne.id,
+          name: currencyOne.text || currencyOne.name || `Currency ${currencyOne.id}`,
+          icon: currencyOne.iconUrl || currencyOne.icon || "",
+          category: currencyOne.categoryApiId || "currency",
         });
       }
-      if (!currencyMap.has(pair.wantId)) {
-        currencyMap.set(pair.wantId, {
-          id: pair.wantId,
-          name: pair.wantName || `Currency ${pair.wantId}`,
-          icon: "",
-          category: "currency",
+      if (currencyTwo && !currencyMap.has(currencyTwo.id)) {
+        currencyMap.set(currencyTwo.id, {
+          id: currencyTwo.id,
+          name: currencyTwo.text || currencyTwo.name || `Currency ${currencyTwo.id}`,
+          icon: currencyTwo.iconUrl || currencyTwo.icon || "",
+          category: currencyTwo.categoryApiId || "currency",
         });
       }
     });
