@@ -1,0 +1,19 @@
+# Bun configuration file
+
+[install]
+# Install packages using exact versions
+exact = false
+
+# Use hardlinks for faster installs
+linkNativeModules = true
+
+[install.scopes]
+# Add any private registries here if needed
+
+[test]
+# Test configuration
+preload = []
+
+[run]
+# Run configuration
+bun = true
