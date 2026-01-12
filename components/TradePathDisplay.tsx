@@ -7,19 +7,6 @@ interface TradePathDisplayProps {
   isLoading?: boolean;
 }
 
-// 最大公約数を計算（ユークリッドの互除法）
-function gcd(a: number, b: number): number {
-  a = Math.abs(Math.floor(a));
-  b = Math.abs(Math.floor(b));
-  while (b !== 0) {
-    const temp = b;
-    b = a % b;
-    a = temp;
-  }
-  return a;
-}
-
-
 export default function TradePathDisplay({ path, isLoading }: TradePathDisplayProps) {
   if (isLoading) {
     return (
@@ -43,9 +30,6 @@ export default function TradePathDisplay({ path, isLoading }: TradePathDisplayPr
   }
 
   // 総交換レート（実数）から適切な基準量を決定
-  // 例: totalRatio = 0.00265 なら、1/0.00265 ≈ 377 なので、377を基準にする
-  // 例: totalRatio = 377 なら、377を基準にする
-
   let baseAmount: number;
   let finalAmount: number;
 
@@ -57,28 +41,6 @@ export default function TradePathDisplay({ path, isLoading }: TradePathDisplayPr
     // 1以上の場合: 分子を基準にする（例: 377 → 1:377）
     baseAmount = 1;
     finalAmount = Math.round(path.totalRatio);
-  }
-
-  // 3桁を超える場合は約分してスケールダウン
-  if (baseAmount > 1000 || finalAmount > 1000) {
-    const divisor = gcd(baseAmount, finalAmount);
-    baseAmount = Math.floor(baseAmount / divisor);
-    finalAmount = Math.floor(finalAmount / divisor);
-
-    // まだ3桁を超える場合はスケーリング
-    const maxVal = Math.max(baseAmount, finalAmount);
-    if (maxVal > 1000) {
-      const scale = 1000 / maxVal;
-      baseAmount = Math.max(1, Math.round(baseAmount * scale));
-      finalAmount = Math.max(1, Math.round(finalAmount * scale));
-
-      // 再度約分
-      const divisor2 = gcd(baseAmount, finalAmount);
-      if (divisor2 > 1) {
-        baseAmount = Math.floor(baseAmount / divisor2);
-        finalAmount = Math.floor(finalAmount / divisor2);
-      }
-    }
   }
 
   // 各ステップの取引量を実数で計算してから整数化

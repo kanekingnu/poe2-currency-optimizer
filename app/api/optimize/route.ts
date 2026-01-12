@@ -21,23 +21,51 @@ export async function GET(request: Request) {
     const data = await poe2API.getCurrencyExchangePairs(league);
 
 
-    // まず、Exalted(ID=13)が含まれるペアからグローバルな相対価格マップを構築
+    // まず、Exalted(ID=13)とDivine(ID=14)が含まれるペアからグローバルな相対価格マップを構築
     const globalRelativePriceMap = new Map<number, number>();
     globalRelativePriceMap.set(13, 1.0); // Exalted Orbを基準(=1)とする
+
+    // 第1パス: Exaltedを含むペアから価格を構築
+    data.forEach((item: any) => {
+      const currencyOne = item.CurrencyOne;
+      const currencyTwo = item.CurrencyTwo;
+
+      if (currencyOne?.id === 13) {
+        const relativePrice = parseFloat(item.CurrencyTwoData?.RelativePrice || '0');
+        // RelativePriceが有効な値（> 0）の場合のみ設定
+        if (relativePrice > 0 && !globalRelativePriceMap.has(currencyTwo?.id)) {
+          globalRelativePriceMap.set(currencyTwo?.id, relativePrice);
+        }
+      } else if (currencyTwo?.id === 13) {
+        const relativePrice = parseFloat(item.CurrencyOneData?.RelativePrice || '0');
+        // RelativePriceが有効な値（> 0）の場合のみ設定
+        if (relativePrice > 0 && !globalRelativePriceMap.has(currencyOne?.id)) {
+          globalRelativePriceMap.set(currencyOne?.id, relativePrice);
+        }
+      }
+    });
+
+    // 第2パス: Divineを含むペアから、まだ設定されていない通貨の価格を構築
+    const divinePrice = globalRelativePriceMap.get(14) || 377; // Divine の価格（Exalted基準）
 
     data.forEach((item: any) => {
       const currencyOne = item.CurrencyOne;
       const currencyTwo = item.CurrencyTwo;
 
-      // Exaltedが含まれるペアの場合のみ、RelativePriceを信頼する
-      if (currencyOne?.id === 13) {
-        const relativePrice = parseFloat(item.CurrencyTwoData?.RelativePrice || '1');
-        if (!globalRelativePriceMap.has(currencyTwo?.id)) {
+      if (currencyOne?.id === 14 && !globalRelativePriceMap.has(currencyTwo?.id)) {
+        const relativePriceToDivine = parseFloat(item.CurrencyTwoData?.RelativePrice || '0');
+        // RelativePriceが有効な値（> 0）の場合のみ設定
+        if (relativePriceToDivine > 0) {
+          // DivineからExalted基準に変換
+          const relativePrice = relativePriceToDivine * divinePrice;
           globalRelativePriceMap.set(currencyTwo?.id, relativePrice);
         }
-      } else if (currencyTwo?.id === 13) {
-        const relativePrice = parseFloat(item.CurrencyOneData?.RelativePrice || '1');
-        if (!globalRelativePriceMap.has(currencyOne?.id)) {
+      } else if (currencyTwo?.id === 14 && !globalRelativePriceMap.has(currencyOne?.id)) {
+        const relativePriceToDivine = parseFloat(item.CurrencyOneData?.RelativePrice || '0');
+        // RelativePriceが有効な値（> 0）の場合のみ設定
+        if (relativePriceToDivine > 0) {
+          // DivineからExalted基準に変換
+          const relativePrice = relativePriceToDivine * divinePrice;
           globalRelativePriceMap.set(currencyOne?.id, relativePrice);
         }
       }
