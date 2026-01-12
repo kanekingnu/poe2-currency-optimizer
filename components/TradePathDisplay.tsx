@@ -7,6 +7,19 @@ interface TradePathDisplayProps {
   isLoading?: boolean;
 }
 
+// 最大公約数を計算（ユークリッドの互除法）
+function gcd(a: number, b: number): number {
+  a = Math.abs(Math.floor(a));
+  b = Math.abs(Math.floor(b));
+  while (b !== 0) {
+    const temp = b;
+    b = a % b;
+    a = temp;
+  }
+  return a;
+}
+
+
 export default function TradePathDisplay({ path, isLoading }: TradePathDisplayProps) {
   if (isLoading) {
     return (
@@ -29,6 +42,67 @@ export default function TradePathDisplay({ path, isLoading }: TradePathDisplayPr
     );
   }
 
+  // 総交換レート（実数）から適切な基準量を決定
+  // 例: totalRatio = 0.00265 なら、1/0.00265 ≈ 377 なので、377を基準にする
+  // 例: totalRatio = 377 なら、377を基準にする
+
+  let baseAmount: number;
+  let finalAmount: number;
+
+  if (path.totalRatio < 1) {
+    // 1未満の場合: 分母を基準にする（例: 0.00265 → 377:1）
+    baseAmount = Math.round(1 / path.totalRatio);
+    finalAmount = 1;
+  } else {
+    // 1以上の場合: 分子を基準にする（例: 377 → 1:377）
+    baseAmount = 1;
+    finalAmount = Math.round(path.totalRatio);
+  }
+
+  // 3桁を超える場合は約分してスケールダウン
+  if (baseAmount > 1000 || finalAmount > 1000) {
+    const divisor = gcd(baseAmount, finalAmount);
+    baseAmount = Math.floor(baseAmount / divisor);
+    finalAmount = Math.floor(finalAmount / divisor);
+
+    // まだ3桁を超える場合はスケーリング
+    const maxVal = Math.max(baseAmount, finalAmount);
+    if (maxVal > 1000) {
+      const scale = 1000 / maxVal;
+      baseAmount = Math.max(1, Math.round(baseAmount * scale));
+      finalAmount = Math.max(1, Math.round(finalAmount * scale));
+
+      // 再度約分
+      const divisor2 = gcd(baseAmount, finalAmount);
+      if (divisor2 > 1) {
+        baseAmount = Math.floor(baseAmount / divisor2);
+        finalAmount = Math.floor(finalAmount / divisor2);
+      }
+    }
+  }
+
+  // 各ステップの取引量を実数で計算してから整数化
+  const tradeAmounts: Array<{ fromAmount: number; toAmount: number }> = [];
+  let currentAmount = baseAmount;
+
+  for (let i = 0; i < path.steps.length; i++) {
+    const step = path.steps[i];
+    const fromAmount = Math.round(currentAmount);
+
+    // 実際のratioを使って次の量を計算（実数）
+    const toAmountFloat = currentAmount * step.ratio;
+    const toAmount = Math.round(toAmountFloat);
+
+    tradeAmounts.push({ fromAmount, toAmount });
+    currentAmount = toAmountFloat; // 次のステップでは実数を保持
+  }
+
+  // 最後のステップの出力を補正
+  if (tradeAmounts.length > 0) {
+    const lastIndex = tradeAmounts.length - 1;
+    tradeAmounts[lastIndex].toAmount = finalAmount;
+  }
+
   return (
     <div className="bg-gray-800 rounded-lg p-6">
       <div className="mb-4">
@@ -45,51 +119,58 @@ export default function TradePathDisplay({ path, isLoading }: TradePathDisplayPr
       </div>
 
       <div className="space-y-3">
-        {path.steps.map((step, index) => (
-          <div
-            key={index}
-            className="bg-gray-700 rounded-lg p-4 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-4">
-              <span className="text-gray-400 font-mono text-sm">
-                {index + 1}.
-              </span>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  {step.from.icon && (
-                    <img
-                      src={step.from.icon}
-                      alt={step.from.name}
-                      className="w-6 h-6 object-contain"
-                    />
-                  )}
-                  <span className="text-white font-medium">{step.from.name}</span>
+        {path.steps.map((step, index) => {
+          const amounts = tradeAmounts[index];
+          return (
+            <div
+              key={index}
+              className="bg-gray-700 rounded-lg p-4 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-gray-400 font-mono text-sm">
+                  {index + 1}.
+                </span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    {step.from.icon && (
+                      <img
+                        src={step.from.icon}
+                        alt={step.from.name}
+                        className="w-6 h-6 object-contain"
+                      />
+                    )}
+                    <span className="text-white font-medium">
+                      {amounts.fromAmount.toLocaleString()} {step.from.name}
+                    </span>
+                  </div>
+                  <span className="text-gray-400">→</span>
+                  <div className="flex items-center gap-2">
+                    {step.to.icon && (
+                      <img
+                        src={step.to.icon}
+                        alt={step.to.name}
+                        className="w-6 h-6 object-contain"
+                      />
+                    )}
+                    <span className="text-green-400 font-medium">
+                      {amounts.toAmount.toLocaleString()} {step.to.name}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-gray-400">→</span>
-                <div className="flex items-center gap-2">
-                  {step.to.icon && (
-                    <img
-                      src={step.to.icon}
-                      alt={step.to.name}
-                      className="w-6 h-6 object-contain"
-                    />
-                  )}
-                  <span className="text-white font-medium">{step.to.name}</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-blue-400 font-semibold text-sm">
+                    {step.ratio.toFixed(4)}x
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    在庫: {step.stock.toLocaleString()}
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-blue-400 font-semibold">
-                  {step.ratio.toFixed(4)}x
-                </div>
-                <div className="text-xs text-gray-500">
-                  在庫: {step.stock}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-4 p-4 bg-gray-900 rounded-lg">
@@ -103,7 +184,7 @@ export default function TradePathDisplay({ path, isLoading }: TradePathDisplayPr
               />
             )}
             <span className="font-semibold text-white">
-              1 {path.path[0]?.name}
+              {baseAmount.toLocaleString()} {path.path[0]?.name}
             </span>
           </div>
           <span>を使って</span>
@@ -116,7 +197,7 @@ export default function TradePathDisplay({ path, isLoading }: TradePathDisplayPr
               />
             )}
             <span className="font-semibold text-green-400">
-              {path.totalRatio.toFixed(4)} {path.path[path.path.length - 1]?.name}
+              {finalAmount.toLocaleString()} {path.path[path.path.length - 1]?.name}
             </span>
           </div>
           <span>を獲得できます</span>
