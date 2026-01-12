@@ -53,19 +53,25 @@ export async function GET(request: Request) {
       const currencyTwo = item.CurrencyTwo;
 
       if (currencyOne?.id === 14 && !globalRelativePriceMap.has(currencyTwo?.id)) {
-        const relativePriceToDivine = parseFloat(item.CurrencyTwoData?.RelativePrice || '0');
+        const currencyTwoRelativePrice = parseFloat(item.CurrencyTwoData?.RelativePrice || '0');
+        const divineRelativePriceInPair = parseFloat(item.CurrencyOneData?.RelativePrice || '0');
+
         // RelativePriceが有効な値（> 0）の場合のみ設定
-        if (relativePriceToDivine > 0) {
-          // DivineからExalted基準に変換
-          const relativePrice = relativePriceToDivine * divinePrice;
+        if (currencyTwoRelativePrice > 0 && divineRelativePriceInPair > 0) {
+          // このペア内での相対価格比率からExalted基準の価格を計算
+          // currencyTwo の価格 = (currencyTwo RelativePrice / Divine RelativePrice) × Divine価格(Exalted基準)
+          const relativePrice = (currencyTwoRelativePrice / divineRelativePriceInPair) * divinePrice;
           globalRelativePriceMap.set(currencyTwo?.id, relativePrice);
         }
       } else if (currencyTwo?.id === 14 && !globalRelativePriceMap.has(currencyOne?.id)) {
-        const relativePriceToDivine = parseFloat(item.CurrencyOneData?.RelativePrice || '0');
+        const currencyOneRelativePrice = parseFloat(item.CurrencyOneData?.RelativePrice || '0');
+        const divineRelativePriceInPair = parseFloat(item.CurrencyTwoData?.RelativePrice || '0');
+
         // RelativePriceが有効な値（> 0）の場合のみ設定
-        if (relativePriceToDivine > 0) {
-          // DivineからExalted基準に変換
-          const relativePrice = relativePriceToDivine * divinePrice;
+        if (currencyOneRelativePrice > 0 && divineRelativePriceInPair > 0) {
+          // このペア内での相対価格比率からExalted基準の価格を計算
+          // currencyOne の価格 = (currencyOne RelativePrice / Divine RelativePrice) × Divine価格(Exalted基準)
+          const relativePrice = (currencyOneRelativePrice / divineRelativePriceInPair) * divinePrice;
           globalRelativePriceMap.set(currencyOne?.id, relativePrice);
         }
       }
